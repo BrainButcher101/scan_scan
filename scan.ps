@@ -1,1 +1,63 @@
-init
+# Define the function to find Excel files
+function Find-ExcelFiles {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        [Parameter(Mandatory=$false)]
+        [string]$FilterFile
+    )
+    
+    $ExcelFiles = Get-ChildItem -Path $Path -Include "*.xlsx", "*.xlsm" -Recurse | Where-Object {$_.Attributes -notmatch "Directory"}
+
+    if ($FilterFile) {
+        $Filters = Get-Content $FilterFile | Where-Object {$_ -ne ""}
+
+        foreach ($Filter in $Filters) {
+            $ExcelFiles += Get-ChildItem -Path $Path -Include "*.xlsx", "*.xlsm" -Recurse | Where-Object {$_.Attributes -notmatch "Directory"} | Select-String $Filter | Select-Object Path
+        }
+    }
+
+    $ExcelFiles | Where-Object { $_.Extension -in ".xlsx", ".xlsm" } | ForEach-Object {
+        $Excel = $null
+        try {
+            $Excel = New-Object -ComObject Excel.Application
+            $Excel.Visible = $false
+            $Excel.DisplayAlerts = $false
+            $Workbook = $Excel.Workbooks.Open($_.FullName)
+
+            foreach ($Worksheet in $Workbook.Worksheets) {
+                foreach ($Cell in $Worksheet.UsedRange.Cells) {
+                    if ($Cell.HasFormula -or ($Cell.Value2 -match "($Filters)" -and $Filters)) {
+                        Write-Output $_.FullName
+                        break
+                    }
+                }
+            }
+        }
+        catch {
+            Write-Output "Unable to read file: $($_.FullName)"
+        }
+        finally {
+            if ($Excel) {
+                $Excel.Quit()
+                [System.Runtime.Interopservices.Marshal]::ReleaseComObject($Excel) | Out-Null
+                Remove-Variable -Name Excel
+            }
+        }
+    }
+}
+
+# Prompt the user to select a file share
+$fileShare = Read-Host "Enter the path to the file share you want to select"
+
+# Verify that the user has access to the file share
+if (-not (Test-Path $fileShare)) {
+    Write-Host "You do not have access to the selected file share."
+    return
+}
+
+# Output the selected file share
+Write-Host "You have selected the file share: $fileShare"
+
+# Find Excel files that contain a formula or a word from filter.txt
+Find-ExcelFiles -Path $fileShare -FilterFile "filter.txt"
