@@ -6,6 +6,7 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.utils.cell import coordinate_from_string, column_index_from_string
 from openpyxl.utils import get_column_letter
+inmport pyad.adquery
 import argparse
 
 def get_excel_files(fileshare_path):
@@ -17,6 +18,17 @@ def get_excel_files(fileshare_path):
                 file_path = os.path.join(root, file)
                 excel_files.append(file_path)
     return excel_files
+
+def get_user_info(suername):
+    q = pyad.adquery.ADQuery()
+    q.execute_query(
+        attributes=["departemnet" , "mail"],
+        where_clause=f"sAMAccountName = '{username}'"
+    )
+    result = q.get_single_result()
+    department = result.get("department")
+    email = result.get("mail")
+    return department, email
 
 def get_keywords(keywords_file_path):
     """Returns a list of keywords read from the specified file."""
