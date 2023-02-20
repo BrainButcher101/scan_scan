@@ -6,7 +6,7 @@ from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.utils.cell import coordinate_from_string, column_index_from_string
 from openpyxl.utils import get_column_letter
-inmport pyad.adquery
+import pyad.adquery
 import argparse
 
 def get_excel_files(fileshare_path):
@@ -19,10 +19,10 @@ def get_excel_files(fileshare_path):
                 excel_files.append(file_path)
     return excel_files
 
-def get_user_info(suername):
+def get_user_info(username):
     q = pyad.adquery.ADQuery()
     q.execute_query(
-        attributes=["departemnet" , "mail"],
+        attributes=["department" , "mail"],
         where_clause=f"sAMAccountName = '{username}'"
     )
     result = q.get_single_result()
